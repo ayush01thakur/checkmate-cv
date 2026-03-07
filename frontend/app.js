@@ -5,9 +5,8 @@
 // if want to run locally then just have to comment the below const API_URL and uncomment the above one.
 
 const API_URL = window.location.hostname === "localhost"
-  ? "http://localhost:8000/api/v1"        // local dev
-  : "https://ai-resume-analyzer-backend-ks7b.onrender.com//api/v1";  // production
-
+  ? "http://localhost:8000/api/v1"
+  : "https://ai-resume-analyzer-backend-ks7b.onrender.com/api/v1";
 
 
 // --- File upload UI ---
