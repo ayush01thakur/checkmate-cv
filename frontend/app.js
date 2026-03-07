@@ -1,5 +1,14 @@
 // const API_URL = "http://localhost:8000/api/v1";
-const API_URL = "/api/v1";
+// const API_URL = "/api/v1";
+
+// since the code is being pushed on render i am changing the backend api end point to the service's end poin
+// if want to run locally then just have to comment the below const API_URL and uncomment the above one.
+
+const API_URL = window.location.hostname === "localhost"
+  ? "http://localhost:8000/api/v1"        // local dev
+  : "https://ai-resume-analyzer-backend-ks7b.onrender.com//api/v1";  // production
+
+
 
 // --- File upload UI ---
 const fileDrop = document.getElementById("file-drop");
