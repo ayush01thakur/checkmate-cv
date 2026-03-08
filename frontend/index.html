@@ -3,15 +3,30 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Resume Analyzer</title>
+  <title>CheckmateCV</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
 
+  <!-- NAVBAR -->
+  <nav class="navbar">
+    <span class="nav-logo">CheckmateCV</span>
+  </nav>
+
   <div class="container">
+
+    <!-- HEADER -->
     <header>
-      <h1>Resume Analyzer</h1>
-      <p>Upload your resume and paste a job description to get AI-powered feedback</p>
+      <h1>AI Resume Analyzer</h1>
+      <p class="subtitle">Upload your resume and paste a job description to get AI-powered feedback</p>
+      <div class="stats-row">
+        <div class="stat-pill">
+          📄 <span id="analyzed-count">0</span> Resumes Analyzed
+        </div>
+        <div class="stat-pill">
+          ✨ <span id="updated-count">0</span> Resumes Updated
+        </div>
+      </div>
     </header>
 
     <!-- INPUT FORM -->
@@ -23,18 +38,17 @@
           <span id="file-label">Click to upload or drag & drop</span>
         </div>
       </div>
-
       <div class="form-group">
         <label for="jd">Job Description</label>
-        <textarea id="jd" rows="8" placeholder="Paste the full job description here..."></textarea>
+        <textarea id="jd" rows="8"
+          placeholder="Paste the full job description here..."></textarea>
       </div>
-
       <button id="analyze-btn" onclick="analyzeResume()">
         Analyze Resume
       </button>
     </section>
 
-    <!-- LOADING STATE -->
+    <!-- LOADING -->
     <section class="card hidden" id="loading-section">
       <div class="loader"></div>
       <p>Analyzing your resume with AI...</p>
@@ -65,19 +79,43 @@
       <div class="result-block cover-letter">
         <div class="cover-header">
           <h3>📄 Cover Letter</h3>
-          <button onclick="copyCoverLetter()">Copy</button>
+          <button onclick="copyText('cover-letter-text')">Copy</button>
         </div>
         <p id="cover-letter-text"></p>
       </div>
 
-      <button onclick="resetForm()">Analyze Another Resume</button>
+      <div id="action-buttons" class="button-row">
+        <button onclick="resetForm()" class="btn-secondary">
+          🔄 Analyze Another Resume
+        </button>
+        <button onclick="showEnhanceForm()" class="btn-primary">
+          ✨ Match & Update Your Resume
+        </button>
+      </div>
 
     </section>
+
+    <!-- ENHANCE FORM -->
+    <div id="enhance-container" class="hidden"></div>
+
+    <!-- ENHANCED RESULTS -->
+    <div id="enhanced-results" class="hidden"></div>
 
     <!-- ERROR -->
     <div class="error hidden" id="error-box"></div>
 
   </div>
+
+  <!-- FOOTER -->
+  <footer class="footer">
+    <span class="footer-brand">CheckmateCV</span>
+    <div class="footer-links">
+      <a href="mailto:thakur8ayush@gmail.com">thakur8ayush@gmail.com</a>
+      <span>·</span>
+      <a href="https://www.linkedin.com/in/ayush-kumar-thakur-ba6402252/"
+         target="_blank">LinkedIn</a>
+    </div>
+  </footer>
 
   <script src="app.js"></script>
 </body>
