@@ -2,6 +2,7 @@ from fastapi import APIRouter, UploadFile, File, Form, HTTPException
 from app.services.parser import extract_text_from_pdf
 from app.services.analyser import analyze_resume
 from app.schemas.resume import ResumeAnalysis
+from app.core.counter import increment_analyzed
 
 router = APIRouter()
 
@@ -38,5 +39,14 @@ async def analyze_resume_route(
         analysis = analyze_resume(resume_text, job_description)
     except ValueError as e:
         raise HTTPException(status_code=500, detail=str(e))
+    
+    increment_analyzed()
 
-    return analysis
+    return ResumeAnalysis(
+        fit_score=analysis.fit_score,
+        summary=analysis.summary,
+        strengths=analysis.strengths,
+        improvements=analysis.improvements,
+        cover_letter=analysis.cover_letter,
+        resume_text=resume_text   
+    )

@@ -4,7 +4,7 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import JsonOutputParser
 from app.core.config import settings
-from app.schemas.resume import ResumeAnalysis
+from app.schemas.resume import LLMAnalysis
 
 # Initialize once at module level — not inside the function
 llm = ChatGoogleGenerativeAI(
@@ -24,7 +24,7 @@ Evaluate the resume using the following criteria:
 
 1. Skill and Qualificaitons Alignment
 Check whether the qualifications and skills listed in the resume match the technologies, tools, and competencies mentioned in the job description.
-Penalize generic or unrelated skill or qualificaiton lists.
+Penalize generic or unrelated skill or qualificaiton lists, highlight if the qualification is not met in the weakness.
 
 2. Evidence of Skills
 Verify whether listed skills are supported by projects, experience, or achievements.
@@ -100,7 +100,7 @@ parser = JsonOutputParser()
 chain = prompt | llm | parser
 
 
-def analyze_resume(resume_text: str, job_description: str) -> ResumeAnalysis:
+def analyze_resume(resume_text: str, job_description: str) -> LLMAnalysis:
     """
     Takes resume text + job description.
     Returns structured ResumeAnalysis.
@@ -120,7 +120,7 @@ def analyze_resume(resume_text: str, job_description: str) -> ResumeAnalysis:
         })
 
         # Pydantic validates the structure — missing fields = clear error
-        return ResumeAnalysis(**result)
+        return LLMAnalysis(**result)
 
     except KeyError as e:
         raise ValueError(f"LLM response missing field: {str(e)}")
