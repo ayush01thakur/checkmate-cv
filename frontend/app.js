@@ -1,34 +1,27 @@
-// const API_URL = "http://localhost:8000/api/v1";
+// frontend/app.js
 
-// since the code is being pushed on render i am changing the backend api end point to the service's end poin
-// if want to run locally then just have to comment the below const API_URL and uncomment the above one.
-
-
-const API_URL = window.location.hostname === "localhost"
+const API_URL = (window.location.hostname === "localhost" || window.location.hostname === "")
   ? "http://localhost:8000/api/v1"
   : "https://ai-resume-analyzer-backend-ks7b.onrender.com/api/v1";
 
-// Global state — frontend holds this between steps
+// Global state
 let currentAnalysis = null;
 
-// ── Stats ──────────────────────────────────────────
+// ── Stats ──────────────────────────────────────────────────────
 async function fetchStats() {
   try {
     const base = API_URL.replace("/api/v1", "");
-    const res = await fetch(`${base}/api/v1/stats`);
+    const res  = await fetch(`${base}/api/v1/stats`);
     const data = await res.json();
     document.getElementById("analyzed-count").textContent = data.analyzed;
     document.getElementById("updated-count").textContent  = data.updated;
   } catch (err) {
-    // Fail silently — stats are non-critical
     console.warn("Could not fetch stats:", err);
   }
 }
-
-// Fetch stats on page load
 fetchStats();
 
-// ── File upload UI ─────────────────────────────────
+// ── File upload UI ─────────────────────────────────────────────
 const fileDrop  = document.getElementById("file-drop");
 const fileInput = document.getElementById("resume");
 const fileLabel = document.getElementById("file-label");
@@ -61,7 +54,7 @@ fileDrop.addEventListener("drop", (e) => {
   }
 });
 
-// ── Analyze ────────────────────────────────────────
+// ── Analyze ────────────────────────────────────────────────────
 async function analyzeResume() {
   const file = fileInput.files[0];
   const jd   = document.getElementById("jd").value.trim();
@@ -82,7 +75,6 @@ async function analyzeResume() {
     const res = await fetch(`${API_URL}/analyze`, {
       method: "POST",
       body: formData
-      // DO NOT set Content-Type manually — browser handles multipart boundary
     });
 
     if (!res.ok) {
@@ -101,7 +93,7 @@ async function analyzeResume() {
     };
 
     renderResults(data);
-    fetchStats(); // update count display
+    fetchStats();
 
   } catch (err) {
     show("input-section");
@@ -111,9 +103,8 @@ async function analyzeResume() {
   }
 }
 
-// ── Render analysis results ────────────────────────
+// ── Render analysis results ────────────────────────────────────
 function renderResults(data) {
-  // Score circle color
   const scoreEl     = document.getElementById("fit-score");
   const scoreCircle = document.querySelector(".score-circle");
   scoreEl.textContent   = data.fit_score;
@@ -136,7 +127,7 @@ function renderResults(data) {
   show("results-section");
 }
 
-// ── Enhancement flow ───────────────────────────────
+// ── Enhancement flow ───────────────────────────────────────────
 async function showEnhanceForm() {
   if (!currentAnalysis) return showError("Please analyze a resume first.");
 
@@ -151,9 +142,17 @@ async function showEnhanceForm() {
       body: JSON.stringify(currentAnalysis.improvements)
     });
 
-    if (!res.ok) throw new Error("Could not generate form");
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.detail || "Could not generate form");
+    }
 
     const formDef = await res.json();
+
+    if (!formDef.fields || formDef.fields.length === 0) {
+      throw new Error("No form fields returned");
+    }
+
     renderDynamicForm(formDef.fields);
 
   } catch (err) {
@@ -164,6 +163,7 @@ async function showEnhanceForm() {
   }
 }
 
+// ── Render dynamic form ────────────────────────────────────────
 function renderDynamicForm(fields) {
   const sectionLabels = {
     projects:     "🛠️ Projects",
@@ -174,26 +174,27 @@ function renderDynamicForm(fields) {
     summary:      "👤 About You"
   };
 
-  // Group fields by section
+  // Group fields by section — preserve order
   const sections = {};
   fields.forEach(f => {
     if (!sections[f.section]) sections[f.section] = [];
     sections[f.section].push(f);
   });
 
-  let html = `<div class="card" id="enhance-section">
-    <h2 style="font-size:1.3rem;font-weight:800;color:var(--primary)">
-      ✨ Update Your Resume
-    </h2>
-    <p style="color:var(--muted);font-size:14px">
-      Fill in what you have. Fields marked
-      <span class="required">*</span> are required.
-      Everything else is optional.
-    </p>`;
+  let html = `
+    <div class="card" id="enhance-section">
+      <h2 style="font-size:1.3rem;font-weight:800;color:var(--primary)">
+        ✨ Update Your Resume
+      </h2>
+      <p style="color:var(--muted);font-size:14px">
+        Fill in what you have. Fields marked
+        <span class="required">*</span> are required.
+        Everything else is optional — skip what doesn't apply.
+      </p>`;
 
   Object.entries(sections).forEach(([section, sectionFields]) => {
-    html += `<div class="form-section">
-      <h3>${sectionLabels[section] || section}</h3>`;
+    const label = sectionLabels[section] || section;
+    html += `<div class="form-section"><h3>${label}</h3>`;
 
     sectionFields.forEach(f => {
       const req = f.required
@@ -201,52 +202,70 @@ function renderDynamicForm(fields) {
         : `<span class="optional">(optional)</span>`;
 
       if (f.type === "textarea") {
-        html += `<div class="form-group">
-          <label>${f.label} ${req}</label>
-          <textarea id="${f.id}" placeholder="${f.placeholder}" rows="4"></textarea>
-        </div>`;
+        html += `
+          <div class="form-group">
+            <label for="${f.id}">${f.label} ${req}</label>
+            <textarea id="${f.id}"
+              placeholder="${f.placeholder}" rows="4"></textarea>
+          </div>`;
+
       } else if (f.type === "select") {
-        html += `<div class="form-group">
-          <label>${f.label} ${req}</label>
-          <select id="${f.id}">
-            <option value="">Select...</option>
-            <option value="yes">Yes, I have work experience</option>
-            <option value="no">No, I'm a fresher</option>
-          </select>
-        </div>`;
+        html += `
+          <div class="form-group">
+            <label for="${f.id}">${f.label} ${req}</label>
+            <select id="${f.id}">
+              <option value="">Select...</option>
+              <option value="yes">Yes, I have work experience</option>
+              <option value="no">No, I am a fresher</option>
+            </select>
+          </div>`;
+
       } else {
-        html += `<div class="form-group">
-          <label>${f.label} ${req}</label>
-          <input type="${f.type}" id="${f.id}"
-            placeholder="${f.placeholder}" />
-        </div>`;
+        // text, url, email
+        html += `
+          <div class="form-group">
+            <label for="${f.id}">${f.label} ${req}</label>
+            <input type="${f.type}" id="${f.id}"
+              placeholder="${f.placeholder}" />
+          </div>`;
       }
     });
 
     html += `</div>`; // close form-section
   });
 
-  html += `<div class="button-row">
-    <button class="btn-secondary" onclick="goBackToResults()">← Back</button>
-    <button class="btn-primary" onclick="submitEnhancement()">
-      ✨ Generate My Resume
-    </button>
-  </div>
-  </div>`; // close card
+  html += `
+      <div class="button-row">
+        <button class="btn-secondary" onclick="goBackToResults()">
+          ← Back
+        </button>
+        <button class="btn-primary" onclick="submitEnhancement()">
+          ✨ Generate My Resume
+        </button>
+      </div>
+    </div>`; // close card
 
   document.getElementById("enhance-container").innerHTML = html;
   hide("results-section");
   show("enhance-container");
 }
 
+// ── Submit enhancement ─────────────────────────────────────────
 async function submitEnhancement() {
-  // Collect all filled form values
+  // Validate required fields
+  const requiredFields = document.querySelectorAll(
+    "#enhance-section input[id], #enhance-section textarea[id], #enhance-section select[id]"
+  );
+
+  // Collect all filled values
   const formData = {};
-  document
-    .querySelectorAll("#enhance-section input, #enhance-section textarea, #enhance-section select")
-    .forEach(el => {
-      if (el.value.trim()) formData[el.id] = el.value.trim();
-    });
+  requiredFields.forEach(el => {
+    if (el.value.trim()) formData[el.id] = el.value.trim();
+  });
+
+  if (Object.keys(formData).length === 0) {
+    return showError("Please fill in at least one field before generating.");
+  }
 
   show("loading-section");
   hide("enhance-container");
@@ -271,7 +290,7 @@ async function submitEnhancement() {
 
     const data = await res.json();
     renderEnhancedResults(data);
-    fetchStats(); // update updated count
+    fetchStats();
 
   } catch (err) {
     show("enhance-container");
@@ -281,7 +300,7 @@ async function submitEnhancement() {
   }
 }
 
-// ── Render enhanced results ────────────────────────
+// ── Render enhanced results ────────────────────────────────────
 function renderEnhancedResults(data) {
   const scoreClass = data.new_fit_score >= 70 ? "score-high"
     : data.new_fit_score >= 40 ? "score-medium" : "score-low";
@@ -300,7 +319,8 @@ function renderEnhancedResults(data) {
         </div>
         <p class="summary">
           Your resume has been optimized for this role.
-          Download it below and use the cover letter and cold message to apply.
+          Download it below, then use the cover letter
+          and cold message to start applying.
         </p>
       </div>
 
@@ -313,7 +333,9 @@ function renderEnhancedResults(data) {
           <h3>📄 Cover Letter</h3>
           <button onclick="copyText('enhanced-cover')">Copy</button>
         </div>
-        <p id="enhanced-cover" style="font-size:14px;color:var(--muted);line-height:1.8;white-space:pre-wrap">
+        <p id="enhanced-cover"
+           style="font-size:14px;color:var(--muted);
+                  line-height:1.8;white-space:pre-wrap;">
           ${data.cover_letter}
         </p>
       </div>
@@ -324,7 +346,8 @@ function renderEnhancedResults(data) {
           <button onclick="copyText('cold-message-text')">Copy</button>
         </div>
         <p id="cold-message-text"
-           style="font-size:14px;color:var(--muted);line-height:1.8;white-space:pre-wrap">
+           style="font-size:14px;color:var(--muted);
+                  line-height:1.8;white-space:pre-wrap;">
           ${data.cold_message}
         </p>
       </div>
@@ -344,16 +367,15 @@ function renderEnhancedResults(data) {
   show("enhanced-results");
 }
 
-// ── Download resume as PDF ─────────────────────────
+// ── Download resume ────────────────────────────────────────────
 function downloadResume() {
   const win = window.open("", "_blank");
   win.document.write(window.resumeHTML);
   win.document.close();
-  // Small delay so content loads before print dialog
   setTimeout(() => win.print(), 500);
 }
 
-// ── Helpers ────────────────────────────────────────
+// ── Helpers ────────────────────────────────────────────────────
 function goBackToResults() {
   hide("enhance-container");
   show("results-section");
@@ -365,6 +387,7 @@ function resetForm() {
   fileDrop.classList.remove("has-file");
   document.getElementById("jd").value = "";
   currentAnalysis = null;
+  window.resumeHTML = null;
   document.getElementById("enhanced-results").innerHTML = "";
   document.getElementById("enhance-container").innerHTML = "";
   hide("results-section");
@@ -387,13 +410,13 @@ function showError(msg) {
 function copyText(id) {
   const text = document.getElementById(id).textContent;
   navigator.clipboard.writeText(text).then(() => {
-    // Find the copy button nearest to this element and flash it
     const el  = document.getElementById(id);
     const btn = el.closest(".result-block, .cold-message-block")
                   ?.querySelector(".cover-header button");
     if (btn) {
+      const original = btn.textContent;
       btn.textContent = "Copied!";
-      setTimeout(() => btn.textContent = "Copy", 2000);
+      setTimeout(() => btn.textContent = original, 2000);
     }
   });
 }
