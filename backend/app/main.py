@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.routers import resume
+from app.routers import resume, enhance
 from app.core.counter import get_counts
 from app.core import config
 
@@ -23,6 +23,7 @@ app.add_middleware(
 
 
 app.include_router(resume.router, prefix="/api/v1", tags=['Resume'])
+app.include_router(enhance.router, prefix="/api/v1", tags=['Enhance'])
 
 
 @app.get("/api/v1/stats")
